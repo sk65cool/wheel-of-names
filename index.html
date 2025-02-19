@@ -1,0 +1,465 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+	<title>Wheel of Names</title>
+	<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=0, minimum-scale=1.0, maximum-scale=1.0">
+
+	<meta name="description" content="">
+
+	<link rel="shortcut icon" href="favicon.png">
+	<link rel="apple-touch-icon" href="favicon.png">
+	<link rel="icon" href="favicon.png">
+
+	<link rel="preconnect" href="https://fonts.googleapis.com">
+	<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+	<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@100..900&family=Quicksand:wght@300..700&display=swap" rel="stylesheet">
+	
+	<style type="text/css">
+
+		*{ box-sizing: border-box; outline: none; -webkit-tap-highlight-color: transparent; }
+
+		body{
+			min-width: 100px;
+		    min-height: 100%;
+		    font-family: Roboto, -apple-system, Helvetica Neue, Helvetica, Arial, sans-serif;
+		    -ms-text-size-adjust: 100%;
+		    -webkit-text-size-adjust: 100%;
+		    -webkit-font-smoothing: antialiased;
+		    -moz-osx-font-smoothing: grayscale;
+		    font-smoothing: antialiased;
+		    line-height: 1.5;
+		    font-size: 16px;
+		    color: #333;
+		    color-scheme: light dark;
+		}
+		
+		#wheel-of-names{ display: flex; gap: 45px; width: 100%; max-width: 1180px; justify-content: center; align-items: stretch; text-align: center; margin: 130px auto 50px; }
+		
+		#wheel-of-names main{ flex: 1; }
+
+		#wheel-wrapper{ position: relative; aspect-ratio: 1; cursor: pointer; user-select: none; }
+		#wheel-wrapper:before{ content: ''; position: absolute; width: calc(100% + 10px); height: calc(100% + 10px); border-radius: 50%; background: linear-gradient(#a0a0a0, #eaeaea); top: calc(50% + 5px); left: 50%; transform: translate(-50%, -50%); z-index: -1; filter: blur(3px); user-select: none; }
+		#wheel-wrapper:after{ content: ''; position: absolute; width: 20%; height: 20%; border-radius: 50%; background: #fff; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 2; user-select: none; }
+		#wheel-wrapper canvas{ position: absolute; top: 0; left: 0; right: 0; bottom: 0; z-index: 1; border-radius: 50%; user-select: none; }
+		#wheel-wrapper svg{ position: absolute; top: 0; left: 0; right: 0; bottom: 0; z-index: 3; user-select: none; }
+		#wheel-wrapper svg .tap-to-spin{ display: none; user-select: none; }
+
+		#wheel-pointer {
+		    width: 0;
+		    height: 0;
+		    position: absolute;
+		    top: 50%;
+		    right: -20px;
+		    z-index: 2;
+		    transform: translateY(-50%);
+		    border-style: solid;
+		    border-width: 20px 40px 20px 0;
+   			border-color: transparent #232323 transparent transparent;
+   			filter: drop-shadow(-2px 4px 4px black);
+		}
+
+		#wheel-pointer div {
+		    position: relative;
+		    top: -18px;
+		    left: 2px;
+		    width: 0;
+		    height: 0;
+		    border-style: solid;
+		    border-width: 18px 36px 18px 0;
+   			border-color: transparent #bbbbbb transparent transparent;
+		}
+
+		#wheel-of-names aside{ min-width: 360px; padding: 15px; border-radius: 8px; background: #fff; box-shadow: 0 1px 3px #0003,0 1px 1px #00000024,0 2px 1px -1px #0000001f; }
+		#wheel-of-names aside #names-wrapper{ height: 100%; }
+		#names-wrapper textarea{ font-family: 'Roboto', sans-serif; width: 100%; height: 100%; resize: none; text-align: left; border: 1px solid #dbdbdb; box-shadow: inset 0 1px 2px #0a0a0a4d; border-radius: 4px; padding: .6rem; font-size: 16px; line-height: 24px; }
+		#names-wrapper textarea:hover{ border-color: #aaaaaa; }
+		#names-wrapper textarea:focus{ border-color: #000000; }
+
+		#winner-dialog{ display: none; position: fixed; z-index: 9999; width: 100vw; height: 100vh; top: 0; left: 0; background: rgba(0, 0, 0, .4); opacity: 0; transition: all .3s ease-in; }
+		#winner-dialog.active{ flex-direction: column; justify-content: center; align-items: center; opacity: 1; }
+
+		#winner-block{ display: flex; flex-direction: column; justify-content: center; align-items: center; width: 90%; max-width: 800px; box-shadow: 0 1px 5px #0003,0 2px 2px #00000024,0 3px 1px -2px #0000001f; transform: scale(0); opacity: 0; transition: all .5s ease-in; }
+		#winner-block.active{ transform: scale(1.0); opacity: 1; }
+		#winner-block>div{ width: 100%; text-align: left; }
+		#winner-block-header{ background: green; position: relative; padding: 16px; font-size: 20px; line-height: 32px; font-weight: 500; border-top-left-radius: 8px; border-top-right-radius: 8px; }
+		#winner-block-header button{ position: absolute; top: 12px; right: 12px; font-size: 28px; z-index: 1; background: transparent; border: none; cursor: pointer }
+		#winner-block-body{ background: #fff; padding: 16px; text-align: center!important; font-size: 48px; line-height: 50px; font-family: 'Quicksand', sans-serif; max-width: 100%; word-wrap: break-word; }
+		#winner-block-footer{ background: #fff; border-bottom-left-radius: 8px; border-bottom-right-radius: 8px; padding: 16px; display: flex; justify-content: end; align-items: center; }
+		#winner-block-footer button{ background: #3369e8; color: #fff; border: none; cursor: pointer; border-radius: 6px; font-size: 16px; font-family: 'Roboto', sans-serif; line-height: 28px; font-weight: 500; padding: 8px; }
+		#winner-block-footer button:hover{ opacity: .85; }
+
+		#confetti-canvas{ position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: -1; }
+		
+
+		@media (prefers-color-scheme: dark) {
+			body{ background: #000; }
+			#wheel-wrapper:before{ content: none; }
+			#wheel-of-names aside{ background: #232323; }
+			#names-wrapper textarea{ border-color: #555; color: #fff; }
+
+			#winner-block-body,
+			#winner-block-footer{ background: #111111; color: #fff; }
+
+		}
+
+		@media (orientation: portrait), (max-width: 1023px) {
+		  #wheel-of-names{ flex-direction: column; }
+		  #wheel-of-names main{ padding: 20px; }
+		  #wheel-wrapper svg .tap-to-spin{ display: initial; }
+		  #wheel-wrapper svg .click-to-spin{ display: none; }
+		  #wheel-of-names aside{ height: 50vh; }
+		  #wheel-pointer { border-width: 16px 32px 16px 0; filter: drop-shadow(-1px 2px 3px black); }
+		  #wheel-pointer div{ border-width: 15px 28px 15px 0; top: -14px; }
+		}
+
+
+		
+
+	</style>
+
+</head>
+
+<body>
+
+<section id="wheel-of-names">
+
+	<main>
+		<section id="wheel-wrapper">
+
+			<canvas id="wheel-canvas"></canvas>
+
+			<div id="wheel-pointer"><div></div></div>
+
+			<svg id="wheel-placeholder" viewBox="-100 -100 200 200" filter="drop-shadow(0 0 10px #000)" font-family="sans-serif" font-weight="800" font-size="12" fill="white">
+				<defs>
+					<path id="curve-top" d="M -52 0 A 1 1 0 0 1 52 0"></path>
+					<path id="curve-bottom" d="M -60 0 A 1 1 0 0 0 60 0"></path>
+				</defs>
+				<text text-anchor="middle">
+					<textPath xlink:href="#curve-top" startOffset="50%">
+						<tspan class="tap-to-spin">Tap to spin</tspan>
+						<tspan class="click-to-spin">Click to spin</tspan>
+					</textPath>
+				</text>
+				<text text-anchor="middle" class="click-to-spin">
+					<textPath xlink:href="#curve-bottom" startOffset="50%">or press ctrl+enter</textPath>
+				</text>
+			</svg>
+		</section>
+	</main>
+
+	<aside>
+		<section id="names-wrapper">
+			<textarea id="names-input" placeholder="Enter sector names, one per line..."></textarea>
+		</section>
+	</aside>
+
+</section>
+
+<div id="winner-dialog">
+	<div id="winner-block">
+		<div id="winner-block-header">We have a winner <button type="button" id="winner-block-header-btn" class="winner-dialog-close">&times;</button></div>
+		<div id="winner-block-body">Winner</div>
+		<div id="winner-block-footer"><button type="button" class="winner-dialog-close">Close</button></div>
+	</div>
+</div>
+
+<canvas id="confetti-canvas"></canvas>
+
+<script src="js/confetti.browser.min.js"></script>
+<script src="js/gsap.min.js"></script>
+<script src="js/CustomEase.min.js"></script>
+<script src="js/Winwheel.js"></script>
+
+<script type="text/javascript">
+
+	document.addEventListener("click", (event) => {
+    const element = event.target;
+    const userSelect = window.getComputedStyle(element).getPropertyValue("user-select");
+    
+    console.log(`Clicked Element:`, element);
+    console.log(`user-select: ${userSelect}`);
+});
+	
+	gsap.registerPlugin(CustomEase);
+
+	gsap.config({
+	  force3D: false,
+	  nullTargetWarn: false,
+	  trialWarn: false,
+	});
+
+	//gsap.defaults({ force3D: false });
+
+	gsap.ticker.fps(144);
+
+	const wrapper = document.getElementById('wheel-wrapper');
+	const placeholder = document.getElementById('wheel-placeholder');
+	const canvas = document.getElementById("wheel-canvas");
+    let size = canvas.width = canvas.height = wrapper.clientWidth;
+    
+
+    const confettiDefaults = { startVelocity: 30, spread: 360, ticks: 60, zIndex: 0 };
+    const confettiCanvas = document.getElementById('confetti-canvas');
+    confettiCanvas.width = window.innerWidth;
+    confettiCanvas.height = window.innerHeight;
+	const confetti_ = confetti.create(confettiCanvas,{ });
+
+
+	let wheelSpinning = false;
+
+    const sectorColors = ["#3369E8", "#D50F25", "#009925", "#EEB211" ];
+    const textColors = ["#FFFFFF", "#FFFFFF", "#000000", "#000000" ];
+
+    let namesList = ['Ali', 'Beatriz', 'Charles', 'Diya', 'Eric', 'Fatima', 'Gabriel', 'Hanna'];
+    namesList =  ['@Cash19872', '@SeanWheeler22', '@DavidJames_x', '@Isaiaholus2386', '@JackDingle26', '@MasseyCam', '@KatieCheshire5', '@katiemiller2011', '@KrystalLouise7', '@Decland99308546', '@RobWalshh', '@nathanhobby9', '@IMOLEAYO_9', '@oliverrharrison', '@Av1982Fc', '@rxm2mz2v8q', '@connorbhafc', '@assetoverseas', '@Dimania10', '@gavla1122', '@AvartaB43200', '@ChrisGartner2', '@pjocathain', '@LeeWalk47561154', '@MariaStoil', '@SamO6922', '@Kongoftheslums', '@dunners_1982', '@wils_j55', '@ChalkyRacing', '@CallumWhiteCW', '@Robbdericch', '@selamattatang', '@youseef421', '@TheRuthlessOne7', '@dannyhicko_', '@hodson429373', '@paulagnew18', '@Jack43567', '@pamelahodgson3', '@JohnMwe83018937', '@ScouseKopite5x', '@patrickeka50707', '@masterppdog', '@MrMad90', '@DDylanG', '@peteroshea__', '@TheHRF', '@lewj07', '@KianJ090', '@JamesBullxck', '@RoryOhanlon12', '@NatDresner', '@FfionDaniels', '@grevans_81', '@Matty71371572', '@DybalaxCr7', '@73harrison', '@MorleyStreet4', '@dannowell1', '@MatthewChick16', '@Johnedward45111', '@K1_racer', '@edev26963', '@O1iMA', '@OwenPearce02', '@AndrewJH91', '@harry_balmer', '@BarrettMil7025', '@NegativePL_', '@Flynny84_', '@JamieAfctu', '@niwdlaBnaD', '@tobeyyfn', '@JJack_Wilson', '@benlomas_71', '@JamesWest1993', '@blockboi321', '@DuncanJamiesonn', '@Matthew98412378', '@H_Hodson24', '@JordanEmbo', '@Callumpartridg3', '@joshuaalowe', '@alexpicky1', '@JeremiaSebulon', '@DVanderpoll', '@cootecat', '@Glit_art3', '@WayneODriscoll2', '@A95881880Basiru', '@Fio_namac', '@GinikachukwuI', '@Bradleyb48', '@VishalxKohli', '@beingnathan3', '@WangZhongw94453', '@shodunketemito2', '@killzzoa', '@Chinedugeo5', '@callumhowland', '@ConstanceB506', '@Pauld101900', '@JJay1980', '@babat42204', '@drm594', '@Ango_peter', '@AbdulG124588', '@ColinFalconer1', '@pjewel74', '@tyjordn', '@Damienbarry9', '@DestinyIsa39652', '@Hamzerhmessi', '@OluseyeAina', '@BNWBdeadstock', '@joedelacoee', '@CFC_Nyctophilia', '@User_1736488153', '@jackaaronw4', '@BircaFamil27965', '@connormaud98', '@ReisJnr3', '@Ryan_ScottLFC', '@OTBCjayden', '@leonwba91', '@cainrigby', '@somerville_adam', '@jollydollie2019', '@CoryRevill', '@JP_011', '@BaileyHarg62001', '@C_skillfull', '@jamie_aitchy', '@realist_jes', '@perri1044', '@chaaaatty', '@un_lucky_clover', '@tybentz', '@dazred', '@RHeagle99', '@boswell_craig', '@greatness_sp', '@BensonKola54498', '@ALPHA_KLE25', '@Swace64T', '@BanyuBening98', '@mod_president', '@AR4574', '@brisk2londinium', '@KunisMuniz', '@horsy100', '@danang_jebrag15', '@CLIVEGAYLE', '@F8td_', '@Tagbo8457', '@McintyreLevi', '@LeAdderNoire', '@kenkenzobanks', '@dagnall_graham', '@MrDRoberts95', '@TomRegan33', '@MichaelCrow1988', '@Connorsmithh9', '@bladesman12345', '@kassk22519518', '@MrTaylorPE', '@Ollysullivano', '@neilboyd171171', '@JackBolland', '@Jzckk', '@lloydy130569', '@NotyalF1', '@markpotter9', '@M_Joyce95', '@JM22437', '@GoalzAinz', '@TsideTipster', '@mikeiron65', '@adamdavies6821', '@robroy35025261', '@Craig83783065', '@KyeParker2', '@kaistevens01', '@AJCREWE23', '@JoeBibby1892', '@TheChoice180', '@merv1975', '@RJbeast19', '@TimmsRoofs', '@AcidrainR1', '@engorilat247365', '@CMull711', '@Mbilalsaroya', '@akamalaccas1', '@ryanhyland5', '@walk1961', '@UtdJad7n', '@Joeeee3e', '@MitchhPlzz', '@becksmetz', '@LeeCoxon10', '@LKGDLuke', '@jpsuperhooper', '@IdeaForToday', '@stevegunning_', '@Wellsyntha', '@BenDani82151898', '@RossNew50698274', '@FCnotPLC', '@stephentilley7', '@Smhumm', '@CathrynCrawshaw', '@ryan_addleton', '@Scott42889967', '@RichardWood1977', '@ConorHy', '@JackTupman_', '@clarke_joey', '@SMRFC92', '@BenSteadders8', '@StuartsStu', '@RyanBarret17', '@JohnPot90818945', '@DannyLUFC96', '@nelster77', '@JS94___', '@Ibrahee37343371', '@LGoweruuu', '@wildaycraig3', '@Ladkin', '@nimajneb1234567', '@BananamanKev', '@aaron_hyde1', '@Ish747Ish', '@EnglishLad_96', '@llMannYllMaNll', '@JWormey8', '@GarethBoylan69', '@nawoo7', '@calcraig27', '@akoma_james', '@JPT1884', '@Doublemint1', '@BillyLUFC13', '@DanielIdow50647', '@JackBywater140', '@Unshookone', '@arthur71603435', '@nc_irons', '@JoshLFC4Life96', '@jamesbrown749', '@LaurenMMcG79', '@maxbaldry15', '@harry72910', '@KyleTalbot97', '@bakerb696', '@Filippo20141', '@JamesKelly_977', '@OTBCjayden'];
+    let namesInput = document.getElementById("names-input");
+	namesInput.value = namesList.join('\r\n');    
+
+	let wheel;
+	let isInited = false;
+	let isSpinning = false;
+
+	let winnerDialog = document.getElementById('winner-dialog');
+	let winnerBlock = document.getElementById('winner-block');
+	let winnerHeader = document.getElementById('winner-block-header');
+	let winnerHeaderBtn = document.getElementById('winner-block-header-btn');
+	let winnerBody = document.getElementById('winner-block-body');
+	document.querySelectorAll('.winner-dialog-close').forEach((btn) => {
+		btn.addEventListener('click', () => {
+			
+			setTimeout(function(){
+				winnerDialog.style.display = 'none';
+			}, 200)
+			
+			winnerDialog.classList.remove('active');
+			winnerBlock.classList.remove('active');
+			namesInput.removeAttribute('disabled')
+		});
+	})
+
+	function renderWheel(init = false){
+		
+		isInited = true;
+
+		size = canvas.width = canvas.height = wrapper.clientWidth;
+
+		namesList = namesInput.value.trim().split("\n").map(name => name.trim()).filter(name => name !== "");
+
+		let segments = [];
+
+		
+
+		for(let s = 0; s < namesList.length; s++){
+
+			let fontSize = 60;
+			let textMargin = 20;
+
+			if(window.innerWidth < 992){
+				fontSize = 48;
+				textMargin = 10;
+			}
+
+			if(window.innerWidth < 640){
+				fontSize = 16;
+				textMargin = 5;
+			}
+
+
+			if(namesList.length > 100)
+				fontSize = 8;
+
+			if(namesList.length > 150)
+				fontSize = 7;
+
+			if(namesList.length > 200)
+				fontSize = 5;
+
+			if(namesList.length > 300)
+				fontSize = 4;
+
+			let text = namesList[s] > 15 ? namesList[s].slice(0, 15) + "..." : namesList[s];
+
+			if(text.length >= 8)
+				fontSize *= .9;
+
+			if(text.length >= 10)
+				fontSize *= .8;
+
+			if(text.length >= 12)
+				fontSize *= .7;
+			
+			let segment = {
+				text: text,
+				textMargin: textMargin,
+				fillStyle: sectorColors[s % sectorColors.length],
+				textFillStyle: textColors[s % textColors.length],
+				textFontSize: fontSize,
+				strokeStyle: sectorColors[s % sectorColors.length]
+			}
+
+			segments.push(segment);
+		}
+
+		let spins = 8;
+
+		let spins_ = getUrlParameter('spins');
+		if(spins_)
+			spins = spins_;
+
+		let animation = (init) ? {type: 'spinOngoing', duration: 15, spins: 1, easing: 'linear', repeat: -1} : {type: 'spinToStop', 'duration': 9.8, spins: spins, easing: CustomEase.create("custom", "M0,0 C0.084,0.61 0.134,0.824 0.2,0.878 0.276,0.94 0.374,1 1,1"), callbackFinished: handleWinner}
+
+		wheel = new Winwheel({
+			canvasId: 'wheel-canvas',
+		    numSegments: namesList.length,
+		    outerRadius: size/2,
+		    textFontFamily: 'Quicksand',
+		    textFontWeight: 'normal',
+		    textAlignment: 'outer',
+		    lineWidth: 0.0001,
+		    pointerAngle: 90,
+		    responsive: true,
+		    segments: segments,
+		    animation: animation
+		});
+
+		if(init)
+			wheel.startAnimation();
+	}
+
+	
+	function getUrlParameter(name) {
+        const params = new URLSearchParams(window.location.search);
+        return params.get(name);
+    }
+
+	
+	function randomInRange(min, max) {
+  		return Math.random() * (max - min) + min;
+	}
+
+
+	function predictWinner(){
+		winnerText = getUrlParameter('winner');
+
+        if (winnerText && namesList.indexOf(winnerText)){
+        	const nameInd = namesList.indexOf(winnerText);
+
+        	let segmentSize = 360 / wheel.numSegments;
+        	stopAt = segmentSize * nameInd+1;
+        	//stopAt += Math.random() * (segmentSize - 5) + 2.5;
+
+        	wheel.animation.stopAngle = stopAt;
+	    }
+	}
+
+    
+    function handleWinner(winner) {
+
+		winnerHeader.style.color = winner.textFillStyle;
+	    winnerHeader.style.background = winner.fillStyle;
+	    winnerHeaderBtn.style.color = winner.textFillStyle;
+	    winnerBody.textContent = winner.text;
+	    
+
+    	
+	    winnerDialog.style.display = 'flex';
+
+    	setTimeout(function(){
+
+    		setTimeout(function(){
+    			winnerDialog.classList.add('active');
+	    		winnerBlock.classList.add('active');
+	    	}, 200);
+
+	    	var duration = 6 * 1000;
+			var animationEnd = Date.now() + duration;
+			var defaults = { startVelocity: 30, spread: 360, ticks: 60, zIndex: 0 };
+			confettiCanvas.style.zIndex = 2;
+
+			var interval = setInterval(function() {
+				var timeLeft = animationEnd - Date.now();
+
+				if (timeLeft <= 0) {
+					confettiCanvas.style.zIndex = -1;
+					return clearInterval(interval);
+				}
+
+				var particleCount = 50 * (timeLeft / duration);
+
+				confetti_({ ...defaults, particleCount, origin: { x: randomInRange(0.1, 0.3), y: Math.random() - 0.2 } });
+				confetti_({ ...defaults, particleCount, origin: { x: randomInRange(0.7, 0.9), y: Math.random() - 0.2 } });
+			}, 250);
+
+    	}, 100)
+    	
+	    
+	    wheel.stopAnimation(false);
+	    //wheel.rotationAngle = 0;
+	    //wheel.draw();
+
+	    isSpinning = false;
+
+	}
+        
+    namesInput.addEventListener("input", renderWheel);
+
+    wrapper.addEventListener("click", function(){
+    	if(!isSpinning){
+    		setTimeout(function(){
+    			wheel.rotationAngle = 0;
+    			isSpinning = true;
+	    		predictWinner();
+	    		wheel.startAnimation();
+	    		namesInput.setAttribute('disabled', true);
+    		}, 300)
+    	}
+    });
+
+
+    document.addEventListener("keydown", function (event) {
+	    if (event.ctrlKey && event.key === "Enter") {
+	        if(!isSpinning){
+	        	setTimeout(function(){
+	        		wheel.rotationAngle = 0;
+		    		placeholder.style.display = 'none';
+			    	renderWheel();
+			    	predictWinner();
+			    	wheel.startAnimation();
+		    	}, 300)
+	    	}
+	    }
+	});
+
+
+    placeholder.addEventListener("click", function(){
+    	if(!isSpinning){
+    		setTimeout(function(){
+    			wheel.rotationAngle = 0;
+		    	placeholder.style.display = 'none';
+		    	renderWheel();
+		    	predictWinner();
+		    	wheel.startAnimation();
+    		}, 300)
+    	}
+    });
+
+
+    window.addEventListener("resize", function(){
+		isSpinning = false;
+		wheel.stopAnimation(false);
+	    wheel.rotationAngle = 0;
+	    //wheel.draw();
+    	renderWheel();
+    });
+
+    document.addEventListener('DOMContentLoaded', function(){
+    	renderWheel(true);
+    });
+
+
+</script>
+
+</body>
+</html>
